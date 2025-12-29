@@ -31230,13 +31230,15 @@ class ActionTextAttachmentNode extends DecoratorNode {
 
   createDOM() {
     const figure = this.createAttachmentFigure();
-
+    
     figure.addEventListener("click", (event) => {
       this.#select(figure);
     });
 
     if (this.isPreviewableAttachment) {
-      figure.appendChild(this.#createDOMForImage());
+      const img = this.#createDOMForImage();
+      figure.appendChild(img);
+      this.#appendResizeHandle(figure, img);
       figure.appendChild(this.#createEditableCaption());
     } else {
       figure.appendChild(this.#createDOMForFile());
@@ -31314,11 +31316,10 @@ class ActionTextAttachmentNode extends DecoratorNode {
   }
 
   get #imageDimensions() {
-    if (this.width && this.height) {
-      return { width: this.width, height: this.height }
-    } else {
-      return {}
-    }
+    const dims = {};
+    if (this.width) dims.width = this.width;
+    if (this.height) dims.height = this.height;
+    return dims
   }
 
   #createDOMForFile() {
@@ -31360,6 +31361,53 @@ class ActionTextAttachmentNode extends DecoratorNode {
     caption.appendChild(input);
 
     return caption
+  }
+
+  #appendResizeHandle(figure, img) {
+    // Add a simple bottom-right resize handle for image attachments
+    const handle = createElement("span", {
+      className: "attachment__resize-handle",
+      title: "Resize image"
+    });
+
+    // Ensure the figure is positioned for the absolute handle
+    const figureStyle = getComputedStyle(figure);
+    if (figureStyle.position === "static") {
+      figure.style.position = "relative";
+    }
+
+    const onMouseDown = (downEvent) => {
+      downEvent.preventDefault();
+      downEvent.stopPropagation();
+
+      const startX = downEvent.clientX;
+      const startWidth = img.getBoundingClientRect().width;
+      const naturalWidth = img.naturalWidth || startWidth;
+
+      const onMouseMove = (moveEvent) => {
+        const dx = moveEvent.clientX - startX;
+        let newWidth = Math.round(startWidth + dx);
+        newWidth = Math.max(32, Math.min(newWidth, naturalWidth));
+
+        // Live preview during drag
+        img.style.width = `${newWidth}px`;
+      };
+
+      const onMouseUp = () => {
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+
+        // Persist width on node (clear height to preserve aspect ratio)
+        const finalWidthPx = parseInt(img.style.width || img.getBoundingClientRect().width, 10);
+        dispatchCustomEvent(img, "lexxy:internal:invalidate-node", { key: this.getKey(), values: { width: finalWidthPx, height: null } });
+      };
+
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+    };
+
+    handle.addEventListener("mousedown", onMouseDown);
+    figure.appendChild(handle);
   }
 
   #handleCaptionInputBlurred(event) {
