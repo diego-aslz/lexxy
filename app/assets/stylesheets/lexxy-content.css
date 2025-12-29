@@ -78,7 +78,6 @@
   video,
   embed,
   object {
-    inline-size: auto;
     margin-inline: auto;
     max-block-size: 32rem;
     object-fit: contain;

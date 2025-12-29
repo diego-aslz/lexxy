@@ -73,6 +73,22 @@
   action-text-attachment {
     cursor: pointer;
   }
+
+  .attachment__resize-handle {
+    display: none;
+    background-color: var(--lexxy-focus-ring-color);
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    right: -6px;
+    bottom: 24px;
+    border-radius: 2px;
+    cursor: se-resize;
+  }
+
+  .node--selected .attachment__resize-handle {
+    display: block; 
+  }
 }
 
 /* Placeholder */
